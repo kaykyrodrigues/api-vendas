@@ -10,3 +10,19 @@ O projeto foi criado com a finalidade de aplicar boas práticas backend e ser ut
 * JavaScript (ES Modules)
 * UUID para identificação única
 * dotenv para variáveis de ambiente
+
+## Endpoints e Como rodar
+- Endpoints:
+```
+POST   /vendas
+GET    /vendas
+GET    /vendas/:id
+PUT    /vendas/:id
+DELETE /vendas/:id
+```
+- Rodando o projeto:
+```
+git clone <url-do-repositorio>
+npm install
+npm run dev
+```
