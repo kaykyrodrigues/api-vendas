@@ -17,7 +17,7 @@ O projeto foi criado com a finalidade de aplicar boas práticas backend, arquite
 POST   /sales
 GET    /sales
 GET    /sales/:id
-PUT    /sales/:id
+PATCH    /sales/:id
 DELETE /sales/:id
 ```
 - Rodando o projeto:
