@@ -1,4 +1,3 @@
-
 import vendaDiariaService from "../services/vendaDiaria.service.js";
 
 class VendaDiariaController {
@@ -18,7 +17,15 @@ class VendaDiariaController {
 
   async findAll(req, res) {
     try {
-      const vendas = await vendaDiariaService.findAll();
+      const { page, limit, startDate, endDate } = req.query;
+
+      const vendas = await vendaDiariaService.findAll({
+        page,
+        limit,
+        startDate,
+        endDate,
+      });
+
       res.status(200).json(vendas);
     } catch (error) {
       const statusCode = error.statusCode || 500;
@@ -44,6 +51,36 @@ class VendaDiariaController {
   }
 
   async update(req, res) {
+    try {
+      const { id } = req.params;
+
+      const {
+        sale_date,
+        cash_amount,
+        pix_amount,
+        credit_amount,
+        notes,
+      } = req.body;
+
+      const result = await vendaDiariaService.update(id, {
+        sale_date,
+        cash_amount,
+        pix_amount,
+        credit_amount,
+        notes,
+      });
+
+      res.status(200).json(result);
+    } catch (error) {
+      const statusCode = error.statusCode || 500;
+
+      res.status(statusCode).json({
+        error: error.message || "Erro interno do servidor",
+      });
+    }
+  }
+
+  async updatePartial(req, res) {
     try {
       const { id } = req.params;
       const attData = req.body;

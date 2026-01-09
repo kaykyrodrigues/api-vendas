@@ -37,9 +37,32 @@ class VendaDiariaService {
     };
   }
 
-  async findAll() {
-    const vendas = await vendaDiariaModel.findAll();
-    return vendas;
+  async findAll({ page = 1, limit = 10, startDate, endDate }) {
+    page = Number(page);
+    limit = Number(limit);
+
+    if (page < 1) page = 1;
+
+    if (limit < 1) limit = 10;
+
+    const offset = (page - 1) * limit;
+
+    const filters = {};
+    if (startDate) filters.startDate = startDate;
+    if (endDate) filters.endDate = endDate;
+
+    const vendas = await vendaDiariaModel.findAll({
+      limit,
+      offset,
+      filters,
+    });
+
+    return {
+      page,
+      limit,
+      filters,
+      data: vendas,
+    };
   }
 
   async findById(id) {
@@ -60,7 +83,22 @@ class VendaDiariaService {
     return rows[0];
   }
 
-  async update(id, attData) {
+  async update(id, venda) {
+    if (!id) {
+      throw new AppError("ID é obrigatorio", 400);
+    }
+
+    for (const key in venda) {
+      if (venda[key] === undefined) {
+        throw new Error(`Campo ${key} é obrigatório`);
+      }
+    }
+
+    const result = await vendaDiariaModel.update(id, venda);
+    return result;
+  }
+
+  async updatePartial(id, attData) {
     if (!id || id.trim() === "") {
       throw new AppError("ID é obrigatorio", 400);
     }
@@ -71,7 +109,6 @@ class VendaDiariaService {
 
     const allowedFields = [
       "sale_date",
-      "total_amount",
       "cash_amount",
       "pix_amount",
       "credit_amount",
