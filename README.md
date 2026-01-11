@@ -1,7 +1,7 @@
 ## API de Controle de Vendas 
 API REST desenvolvida com a finalidade de gerenciar vendas, funcionando com um CRUD que permite cadastrar, consultar, atualizar e remover vendas. 
 
-O projeto foi criado com a finalidade de aplicar boas práticas backend, arquitetura em camadas e também ser utilizado como ferramenta real de gerenciamento.
+O projeto foi criado com o propósito de aplicar boas práticas backend, arquitetura em camadas e também ser utilizado como ferramenta real de gerenciamento.
 
 ## 💻 Tecnologias
 * Node.js
