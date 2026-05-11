@@ -13,20 +13,22 @@ class VendaDiariaService {
 
     const cash = venda.cash_amount || 0;
     const pix = venda.pix_amount || 0;
-    const credit = venda.credit_amount || 0;
+    const card = venda.card_amount || 0;
+    const quantity = venda.quantity || 0;
 
-    const totalPagamentos = cash + pix + credit;
+    const totalPagamentos = cash + pix + card;
 
     venda.total_amount = totalPagamentos;
 
     const vendaFinal = {
       id: uuidv4(),
+      sale_index: venda.sale_index,
       sale_date: venda.sale_date,
       total_amount: venda.total_amount,
       cash_amount: cash,
       pix_amount: pix,
-      credit_amount: credit,
-      notes: venda.notes || null,
+      card_amount: card,
+      quantity: quantity,
     };
 
     await vendaDiariaModel.create(vendaFinal);
@@ -37,21 +39,20 @@ class VendaDiariaService {
     };
   }
 
-  async findAll({ page = 1, limit = 10, startDate, endDate }) {
-    page = Number(page);
-    limit = Number(limit);
-
-    if (page < 1) page = 1;
-
-    if (limit < 1) limit = 10;
+  async findAll({ userId, page, limit, startDate, endDate }) {
+    page = Number(page) || 1;
+    limit = Number(limit) || 10;
 
     const offset = (page - 1) * limit;
 
     const filters = {};
+
     if (startDate) filters.startDate = startDate;
+
     if (endDate) filters.endDate = endDate;
 
     const vendas = await vendaDiariaModel.findAll({
+      userId,
       limit,
       offset,
       filters,
@@ -111,8 +112,8 @@ class VendaDiariaService {
       "sale_date",
       "cash_amount",
       "pix_amount",
-      "credit_amount",
-      "notes",
+      "card_amount",
+      "quantity",
     ];
 
     const fields = {};

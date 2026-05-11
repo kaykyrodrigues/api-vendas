@@ -2,7 +2,7 @@ import pool from "../database/pool.js";
 
 class VendaDiariaModel {
   async create(sale) {
-    const sql = `INSERT INTO vendas_diarias (id, sale_date, total_amount, cash_amount, pix_amount, credit_amount, notes)
+    const sql = `INSERT INTO vendas_diarias (id, sale_date, total_amount, cash_amount, pix_amount, card_amount, quantity)
   VALUES (?, ?, ?, ?, ?, ?, ?)`;
 
     const {
@@ -11,8 +11,8 @@ class VendaDiariaModel {
       total_amount,
       cash_amount,
       pix_amount,
-      credit_amount,
-      notes,
+      card_amount,
+      quantity,
     } = sale;
 
     await pool.query(sql, [
@@ -21,24 +21,40 @@ class VendaDiariaModel {
       total_amount,
       cash_amount,
       pix_amount,
-      credit_amount,
-      notes,
+      card_amount,
+      quantity,
     ]);
   }
 
-  async findAll({ limit, offset, filters }) {
-    let sql = "SELECT * FROM vendas_diarias";
-    const values = [];
+  async findAll({ userId, limit, offset, filters }) {
+    let sql = `
+    SELECT *
+    FROM vendas_diarias
+    WHERE user_id = ?
+  `;
 
-    if (filters.startDate && filters.endDate) {
-      sql += ` WHERE sale_date BETWEEN ? AND ?`;
-      values.push(filters.startDate, filters.endDate);
+    const values = [userId];
+
+    if (filters.startDate) {
+      sql += ` AND sale_date >= ?`;
+      values.push(filters.startDate);
     }
 
-    sql += ` LIMIT ? OFFSET ?`;
+    if (filters.endDate) {
+      sql += ` AND sale_date <= ?`;
+      values.push(filters.endDate);
+    }
+
+    sql += `
+    ORDER BY created_at DESC
+    LIMIT ?
+    OFFSET ?
+  `;
+
     values.push(limit, offset);
 
     const [rows] = await pool.query(sql, values);
+
     return rows;
   }
 
@@ -52,16 +68,16 @@ class VendaDiariaModel {
     const sql = `UPDATE vendas_diarias SET              sale_date = ?,
     cash_amount = ?,
     pix_amount = ?,
-    credit_amount = ?,
-    notes = ? WHERE id=?;`;
+    card_amount = ?,
+    quantity = ?, WHERE id=?;`;
 
     const values = [
       venda.sale_date,
       venda.cash_amount,
       venda.pix_amount,
-      venda.credit_amount,
-      venda.notes,
-      id
+      venda.card_amount,
+      venda.quantity,
+      id,
     ];
 
     const result = await pool.query(sql, values);

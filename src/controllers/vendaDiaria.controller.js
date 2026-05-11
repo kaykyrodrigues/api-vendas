@@ -17,9 +17,13 @@ class VendaDiariaController {
 
   async findAll(req, res) {
     try {
+      
       const { page, limit, startDate, endDate } = req.query;
 
+      const userId = req.user.id;
+
       const vendas = await vendaDiariaService.findAll({
+        userId,
         page,
         limit,
         startDate,
@@ -28,6 +32,7 @@ class VendaDiariaController {
 
       res.status(200).json(vendas);
     } catch (error) {
+      console.error(error)
       const statusCode = error.statusCode || 500;
 
       res.status(statusCode).json({
@@ -54,20 +59,15 @@ class VendaDiariaController {
     try {
       const { id } = req.params;
 
-      const {
-        sale_date,
-        cash_amount,
-        pix_amount,
-        credit_amount,
-        notes,
-      } = req.body;
+      const { sale_date, cash_amount, pix_amount, card_amount, quantity } =
+        req.body;
 
       const result = await vendaDiariaService.update(id, {
         sale_date,
         cash_amount,
         pix_amount,
-        credit_amount,
-        notes,
+        card_amount,
+        quantity,
       });
 
       res.status(200).json(result);
