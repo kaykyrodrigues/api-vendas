@@ -22,11 +22,17 @@ class UserModel {
       ],
     );
   }
-  
+
   async findByEmail(email) {
     const [rows] = await pool.query(
       `
-    SELECT * FROM users WHERE email = ?
+    SELECT 
+  id,
+  username,
+  email,
+  is_verified
+FROM users
+WHERE email = ?
   `,
       [email],
     );

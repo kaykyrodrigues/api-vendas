@@ -1,10 +1,11 @@
 import AuthService from "../services/auth.service.js";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import pool from "../database/pool.js";
 
 class AuthController {
   async register(req, res) {
     try {
-      console.log("REGISTER BODY:", req.body);
-
       const result = await AuthService.register(req.body);
 
       return res.status(201).json(result);
@@ -18,14 +19,69 @@ class AuthController {
   }
 
   async login(req, res) {
-    console.log("LOGIN BODY:", req.body);
-
     try {
-      const result = await AuthService.login(req.body);
+      const { email, userpassword } = req.body;
 
-      return res.json(result);
-    } catch (err) {
-      return res.status(400).json({ error: err.message });
+      const [rows] = await pool.query(
+        "SELECT * FROM users WHERE email = ?",
+        [email]
+      );
+
+      const user = rows[0];
+
+      if (!user) {
+        return res.status(401).json({
+          error: "Usuário não encontrado",
+        });
+      }
+
+      const isMatch = await bcrypt.compare(
+        userpassword,
+        user.userpassword
+      );
+
+      if (!isMatch) {
+        return res.status(401).json({
+          error: "Senha inválida",
+        });
+      }
+
+      // 🔥 PADRONIZAÇÃO DO TOKEN
+      const token = jwt.sign(
+        {
+          id: user.id, // <- PADRÃO
+          username: user.username,
+          email: user.email,
+        },
+        process.env.JWT_SECRET,
+        {
+          expiresIn: "1d",
+        }
+      );
+
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "lax",
+      });
+
+      return res.status(200).json({
+        message: "Login realizado com sucesso",
+        token,
+
+        // 🔥 PADRONIZADO
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+        },
+      });
+    } catch (error) {
+      console.error(error);
+
+      return res.status(500).json({
+        error: "Erro interno do servidor",
+      });
     }
   }
 
@@ -37,7 +93,9 @@ class AuthController {
 
       return res.json(result);
     } catch (err) {
-      return res.status(400).json({ error: err.message });
+      return res.status(400).json({
+        error: err.message,
+      });
     }
   }
 
@@ -49,7 +107,9 @@ class AuthController {
 
       return res.json(result);
     } catch (err) {
-      return res.status(400).json({ error: err.message });
+      return res.status(400).json({
+        error: err.message,
+      });
     }
   }
 
@@ -57,11 +117,16 @@ class AuthController {
     try {
       const { token, newPassword } = req.body;
 
-      const result = await AuthService.resetPassword(token, newPassword);
+      const result = await AuthService.resetPassword(
+        token,
+        newPassword
+      );
 
       return res.json(result);
     } catch (err) {
-      return res.status(400).json({ error: err.message });
+      return res.status(400).json({
+        error: err.message,
+      });
     }
   }
 }

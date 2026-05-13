@@ -7,13 +7,19 @@ import EmailService from "./email.service.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET não configurado");
+}
+
 class AuthService {
   async register({ username, email, userpassword }) {
     if (!username || !email || !userpassword) {
       throw new Error("Todos os campos são obrigatórios");
     }
 
-    if (!email.includes("@")) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(email)) {
       throw new Error("Email inválido");
     }
 
@@ -29,9 +35,7 @@ class AuthService {
 
     const hashedPassword = await bcrypt.hash(userpassword, 10);
 
-    const verificationToken = crypto
-      .randomBytes(32)
-      .toString("hex");
+    const verificationToken = crypto.randomBytes(32).toString("hex");
 
     const user = {
       id: uuidv4(),
@@ -43,10 +47,7 @@ class AuthService {
 
     await UserModel.create(user);
 
-    await EmailService.sendVerificationEmail(
-      email,
-      verificationToken
-    );
+    await EmailService.sendVerificationEmail(email, verificationToken);
 
     return {
       message: "Usuário criado. Verifique seu email.",
@@ -72,22 +73,17 @@ class AuthService {
       throw new Error("Verifique seu email antes de logar");
     }
 
-    const isMatch = await bcrypt.compare(
-      userpassword,
-      user.userpassword
-    );
+    const isMatch = await bcrypt.compare(userpassword, user.userpassword);
 
     if (!isMatch) {
       throw new Error("Credenciais inválidas");
     }
 
-    const token = jwt.sign(
-      { id: user.id },
-      JWT_SECRET,
-      {
-        expiresIn: "1d",
-      }
-    );
+    const token = jwt.sign({ id: user.id }, JWT_SECRET, {
+      expiresIn: "1d",
+      issuer: "api-vendas",
+      audience: "api-vendas-users",
+    });
 
     return { token };
   }
@@ -117,25 +113,16 @@ class AuthService {
       throw new Error("Usuário não encontrado");
     }
 
-    const resetToken = crypto
-      .randomBytes(32)
-      .toString("hex");
+    const resetToken = crypto.randomBytes(32).toString("hex");
 
-    const expires = new Date(Date.now() + 3600000);
+    const expires = new Date(Date.now() + 15 * 60 * 1000);
 
-    await UserModel.saveResetToken(
-      user.id,
-      resetToken,
-      expires
-    );
+    await UserModel.saveResetToken(user.id, resetToken, expires);
 
-    await EmailService.sendResetPasswordEmail(
-      email,
-      resetToken
-    );
+    await EmailService.sendResetPasswordEmail(email, resetToken);
 
     return {
-      message: "Email de redefinição enviado",
+      message: "Se o email existir, um link será enviado",
     };
   }
 

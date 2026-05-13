@@ -1,49 +1,81 @@
 import relatorioModel from "../models/relatorio.model.js";
 
 class RelatorioService {
-  async resumo() {
+
+  async resumo(userId) {
+
     const [
       faturamentoTotal,
       faturamentoDiario,
       faturamentoForma,
       quantidadeTotal,
     ] = await Promise.all([
-      relatorioModel.faturamentoTotal(),
-      relatorioModel.faturamentoDiario(),
-      relatorioModel.faturamentoForma(),
-      relatorioModel.quantidadeTotal(),
+
+      relatorioModel.faturamentoTotal(userId),
+
+      relatorioModel.faturamentoDiario(userId),
+
+      relatorioModel.faturamentoForma(userId),
+
+      relatorioModel.quantidadeTotal(userId),
     ]);
 
     return {
-      faturamentoTotal: Number(faturamentoTotal) || 0,
-      faturamentoDiario,
-      faturamentoForma: faturamentoForma[0] || {},
-      quantidadeTotal: Number(quantidadeTotal) || 0,
+
+      faturamentoTotal:
+        Number(faturamentoTotal) || 0,
+
+      faturamentoDiario:
+        faturamentoDiario || [],
+
+      faturamentoForma:
+        faturamentoForma || {
+          pix: 0,
+          card: 0,
+          cash: 0,
+        },
+
+      quantidadeTotal:
+        Number(quantidadeTotal) || 0,
     };
   }
 
-  async faturamentoTotal() {
-    const faturamento = await relatorioModel.faturamentoTotal();
+  async faturamentoTotal(userId) {
+
+    const faturamento =
+      await relatorioModel.faturamentoTotal(userId);
 
     return Number(faturamento) || 0;
   }
 
-  async faturamentoDiario() {
-    const rows = await relatorioModel.faturamentoDiario();
+  async faturamentoDiario(userId) {
 
-    return rows;
+    return await relatorioModel
+      .faturamentoDiario(userId);
   }
 
-  async faturamentoForma() {
-    const rows = await relatorioModel.faturamentoForma();
+  async faturamentoForma(userId) {
 
-    return rows;
+    return await relatorioModel
+      .faturamentoForma(userId);
   }
 
-  async quantidadeTotal() {
-    const total_itens_vendidos = await relatorioModel.quantidadeTotal();
+  async quantidadeTotal(userId) {
 
-    return Number(total_itens_vendidos) || 0;
+    const total =
+      await relatorioModel.quantidadeTotal(userId);
+
+    return Number(total) || 0;
+  }
+
+  async ticketMedio(userId) {
+
+    return await relatorioModel.ticketMedio(userId);
+  }
+
+  async vendasPorDia(userId) {
+
+    return await relatorioModel.vendasPorDia(userId);
   }
 }
 

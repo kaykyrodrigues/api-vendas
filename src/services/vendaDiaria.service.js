@@ -6,29 +6,35 @@ const uuidV4Regex =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 class VendaDiariaService {
+  
   async create(venda) {
+    console.log("VENDA RECEBIDA:", venda);
+    
     if (!venda.sale_date) {
-      throw new AppError("sale_date é obrigatório", 404);
+      throw new AppError("sale_date é obrigatório", 400);
     }
 
-    const cash = venda.cash_amount || 0;
-    const pix = venda.pix_amount || 0;
-    const card = venda.card_amount || 0;
-    const quantity = venda.quantity || 0;
+    
+    if (!venda.user_id) {
+      throw new AppError("user_id é obrigatório", 400);
+    }
+
+    const cash = Number(venda.cash_amount) || 0;
+    const pix = Number(venda.pix_amount) || 0;
+    const card = Number(venda.card_amount) || 0;
+    const quantity = Number(venda.quantity) || 0;
 
     const totalPagamentos = cash + pix + card;
 
-    venda.total_amount = totalPagamentos;
-
     const vendaFinal = {
       id: uuidv4(),
-      sale_index: venda.sale_index,
+      user_id: venda.user_id,
       sale_date: venda.sale_date,
-      total_amount: venda.total_amount,
+      total_amount: totalPagamentos,
       cash_amount: cash,
       pix_amount: pix,
       card_amount: card,
-      quantity: quantity,
+      quantity,
     };
 
     await vendaDiariaModel.create(vendaFinal);
@@ -47,9 +53,13 @@ class VendaDiariaService {
 
     const filters = {};
 
-    if (startDate) filters.startDate = startDate;
+    if (startDate) {
+      filters.startDate = startDate;
+    }
 
-    if (endDate) filters.endDate = endDate;
+    if (endDate) {
+      filters.endDate = endDate;
+    }
 
     const vendas = await vendaDiariaModel.findAll({
       userId,
@@ -66,46 +76,63 @@ class VendaDiariaService {
     };
   }
 
-  async findById(id) {
+  async findById(id, userId) {
     if (!id || id.trim() === "") {
-      throw new AppError("ID é obrigatorio", 400);
+      throw new AppError("ID é obrigatório", 400);
     }
 
     if (!uuidV4Regex.test(id)) {
-      throw new AppError("O ID precisa estar em formato uuid", 400);
+      throw new AppError("O ID precisa estar em formato UUID", 400);
     }
 
-    const rows = await vendaDiariaModel.findById(id);
+    const venda = await vendaDiariaModel.findById(id, userId);
 
-    if (rows.length === 0) {
+    if (!venda) {
       throw new AppError("Venda não encontrada", 404);
     }
 
-    return rows[0];
+    return venda;
   }
 
-  async update(id, venda) {
-    if (!id) {
-      throw new AppError("ID é obrigatorio", 400);
+  async update(id, userId, venda) {
+    if (!id || id.trim() === "") {
+      throw new AppError("ID é obrigatório", 400);
+    }
+
+    if (!uuidV4Regex.test(id)) {
+      throw new AppError("O ID precisa estar em formato UUID", 400);
     }
 
     for (const key in venda) {
       if (venda[key] === undefined) {
-        throw new Error(`Campo ${key} é obrigatório`);
+        throw new AppError(`Campo ${key} é obrigatório`, 400);
       }
     }
 
-    const result = await vendaDiariaModel.update(id, venda);
-    return result;
+    const cash = Number(venda.cash_amount) || 0;
+    const pix = Number(venda.pix_amount) || 0;
+    const card = Number(venda.card_amount) || 0;
+
+    venda.total_amount = cash + pix + card;
+
+    const result = await vendaDiariaModel.update(id, userId, venda);
+
+    if (result.affectedRows === 0) {
+      throw new AppError("Venda não encontrada", 404);
+    }
+
+    return {
+      message: "Venda atualizada com sucesso!",
+    };
   }
 
-  async updatePartial(id, attData) {
+  async updatePartial(id, userId, attData) {
     if (!id || id.trim() === "") {
-      throw new AppError("ID é obrigatorio", 400);
+      throw new AppError("ID é obrigatório", 400);
     }
 
     if (!uuidV4Regex.test(id)) {
-      throw new AppError("O ID precisa estar em formato uuid", 400);
+      throw new AppError("O ID precisa estar em formato UUID", 400);
     }
 
     const allowedFields = [
@@ -125,23 +152,62 @@ class VendaDiariaService {
     }
 
     if (Object.keys(fields).length === 0) {
-      throw new AppError("Nenhum campo válido para atualizar", 404);
+      throw new AppError(
+        "Nenhum campo válido para atualizar",
+        400
+      );
     }
 
-    const result = await vendaDiariaModel.update(id, fields);
-    return result;
+    // recalcula total_amount se alterar pagamentos
+    const hasPaymentField =
+      fields.cash_amount !== undefined ||
+      fields.pix_amount !== undefined ||
+      fields.card_amount !== undefined;
+
+    if (hasPaymentField) {
+      const vendaAtual = await vendaDiariaModel.findById(id, userId);
+
+      if (!vendaAtual) {
+        throw new AppError("Venda não encontrada", 404);
+      }
+
+      const cash =
+        Number(fields.cash_amount ?? vendaAtual.cash_amount);
+
+      const pix =
+        Number(fields.pix_amount ?? vendaAtual.pix_amount);
+
+      const card =
+        Number(fields.card_amount ?? vendaAtual.card_amount);
+
+      fields.total_amount = cash + pix + card;
+    }
+
+    const result = await vendaDiariaModel.updatePartial(
+      id,
+      userId,
+      fields
+    );
+
+    if (result.affectedRows === 0) {
+      throw new AppError("Venda não encontrada", 404);
+    }
+
+    return {
+      message: "Venda atualizada com sucesso!",
+    };
   }
 
-  async deleteById(id) {
+  async deleteById(id, userId) {
     if (!id || id.trim() === "") {
-      throw new AppError("ID é obrigatorio", 400);
+      throw new AppError("ID é obrigatório", 400);
     }
 
     if (!uuidV4Regex.test(id)) {
-      throw new AppError("O ID precisa estar em formato uuid", 400);
+      throw new AppError("O ID precisa estar em formato UUID", 400);
     }
 
-    const result = await vendaDiariaModel.deleteById(id);
+    const result = await vendaDiariaModel.deleteById(id, userId);
 
     if (result.affectedRows === 0) {
       throw new AppError("Venda não encontrada", 404);

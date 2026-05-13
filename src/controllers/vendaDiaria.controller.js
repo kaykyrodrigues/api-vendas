@@ -3,13 +3,35 @@ import vendaDiariaService from "../services/vendaDiaria.service.js";
 class VendaDiariaController {
   async create(req, res) {
     try {
-      const result = await vendaDiariaService.create(req.body);
+      const userId = req.user.id;
+
+      console.log("USER ID:", userId);
+
+      const {
+        sale_date,
+        cash_amount,
+        pix_amount,
+        card_amount,
+        total_amount,
+        quantity,
+      } = req.body;
+
+      const result = await vendaDiariaService.create({
+        sale_date,
+        cash_amount,
+        pix_amount,
+        card_amount,
+        total_amount,
+        quantity,
+        user_id: userId,
+      });
 
       res.status(201).json(result);
-    } catch (error) {
-      const statusCode = error.statusCode || 500;
 
-      res.status(statusCode).json({
+    } catch (error) {
+      console.error(error);
+
+      res.status(error.statusCode || 500).json({
         error: error.message || "Erro interno do servidor",
       });
     }
@@ -17,7 +39,6 @@ class VendaDiariaController {
 
   async findAll(req, res) {
     try {
-      
       const { page, limit, startDate, endDate } = req.query;
 
       const userId = req.user.id;
@@ -31,11 +52,11 @@ class VendaDiariaController {
       });
 
       res.status(200).json(vendas);
-    } catch (error) {
-      console.error(error)
-      const statusCode = error.statusCode || 500;
 
-      res.status(statusCode).json({
+    } catch (error) {
+      console.error(error);
+
+      res.status(error.statusCode || 500).json({
         error: error.message || "Erro interno do servidor",
       });
     }
@@ -44,12 +65,17 @@ class VendaDiariaController {
   async findById(req, res) {
     try {
       const { id } = req.params;
-      const venda = await vendaDiariaService.findById(id);
-      res.status(200).json(venda);
-    } catch (error) {
-      const statusCode = error.statusCode || 500;
 
-      res.status(statusCode).json({
+      const userId = req.user.id;
+
+      const venda = await vendaDiariaService.findById(id, userId);
+
+      res.status(200).json(venda);
+
+    } catch (error) {
+      console.error(error);
+
+      res.status(error.statusCode || 500).json({
         error: error.message || "Erro interno do servidor",
       });
     }
@@ -59,22 +85,20 @@ class VendaDiariaController {
     try {
       const { id } = req.params;
 
-      const { sale_date, cash_amount, pix_amount, card_amount, quantity } =
-        req.body;
+      const userId = req.user.id;
 
-      const result = await vendaDiariaService.update(id, {
-        sale_date,
-        cash_amount,
-        pix_amount,
-        card_amount,
-        quantity,
-      });
+      const result = await vendaDiariaService.update(
+        id,
+        userId,
+        req.body
+      );
 
       res.status(200).json(result);
-    } catch (error) {
-      const statusCode = error.statusCode || 500;
 
-      res.status(statusCode).json({
+    } catch (error) {
+      console.error(error);
+
+      res.status(error.statusCode || 500).json({
         error: error.message || "Erro interno do servidor",
       });
     }
@@ -83,15 +107,21 @@ class VendaDiariaController {
   async updatePartial(req, res) {
     try {
       const { id } = req.params;
-      const attData = req.body;
 
-      const result = await vendaDiariaService.update(id, attData);
+      const userId = req.user.id;
+
+      const result = await vendaDiariaService.updatePartial(
+        id,
+        userId,
+        req.body
+      );
 
       res.status(200).json(result);
-    } catch (error) {
-      const statusCode = error.statusCode || 500;
 
-      res.status(statusCode).json({
+    } catch (error) {
+      console.error(error);
+
+      res.status(error.statusCode || 500).json({
         error: error.message || "Erro interno do servidor",
       });
     }
@@ -100,16 +130,23 @@ class VendaDiariaController {
   async deleteById(req, res) {
     try {
       const { id } = req.params;
-      const result = await vendaDiariaService.deleteById(id);
+
+      const userId = req.user.id;
+
+      const result = await vendaDiariaService.deleteById(
+        id,
+        userId
+      );
 
       res.status(200).json({
-        message: "Venda excluida com sucesso!",
+        message: "Venda excluída com sucesso!",
         affectedRows: result.affectedRows,
       });
-    } catch (error) {
-      const statusCode = error.statusCode || 500;
 
-      res.status(statusCode).json({
+    } catch (error) {
+      console.error(error);
+
+      res.status(error.statusCode || 500).json({
         error: error.message || "Erro interno do servidor",
       });
     }
