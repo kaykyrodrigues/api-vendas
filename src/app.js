@@ -12,10 +12,11 @@ const app = express();
 
 app.use(
   cors({
-    origin: [process.env.FRONTEND_URL],
+    origin: "https://gerenciador-de-vendas-lime.vercel.app",
     credentials: true,
-  }),
+  })
 );
+
 app.use(express.json());
 
 if (process.env.NODE_ENV !== "production") {
