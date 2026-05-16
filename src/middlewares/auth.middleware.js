@@ -14,7 +14,6 @@ export default function authMiddleware(req, res, next) {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // 🔥 PADRÃO GLOBAL DO PROJETO
     req.user = {
       id: decoded.id,
       username: decoded.username,
